@@ -1,0 +1,43 @@
+services:
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_URL=mysql+pymysql://user:password@db:3306/poc_db?charset=utf8mb4
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./api:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build: ./worker
+    environment:
+      - DB_URL=mysql+pymysql://user:password@db:3306/poc_db?charset=utf8mb4
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./worker:/app
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: poc_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
